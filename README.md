@@ -332,9 +332,9 @@ transport:
     obfs_key: "your-obfs-key"  # Must match between client and server
 ```
 
-**obfs4**: Disguises traffic using obfuscation layer 4 protocol, making it look like random noise.
-**meek**: Tunnels traffic through a domain-fronted CDN for additional stealth.
-**websocket/http2**: Makes traffic appear as standard web browsing.
+- **obfs4**: Disguises traffic using obfuscation layer 4 protocol, making it look like random noise.
+- **meek**: Tunnels traffic through a domain-fronted CDN for additional stealth.
+- **websocket/http2**: Makes traffic appear as standard web browsing.
 
 ### 2. Dynamic Encryption & Cipher Rotation
 
@@ -372,9 +372,9 @@ transport:
       fragment_size: 512
 ```
 
-**Padding**: Adds random bytes to packets, making all packets appear similar in size.
-**Timing Jitter**: Introduces random delays to prevent timing correlation attacks.
-**Fragmentation**: Breaks packets into smaller pieces with varying sizes.
+- **Padding**: Adds random bytes to packets, making all packets appear similar in size.
+- **Timing Jitter**: Introduces random delays to prevent timing correlation attacks.
+- **Fragmentation**: Breaks packets into smaller pieces with varying sizes.
 
 ### 4. Multi-Server Failover & Redundancy
 

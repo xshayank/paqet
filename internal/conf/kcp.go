@@ -106,14 +106,8 @@ func (k *KCP) setDefaults(role string) {
 
 	// Set defaults for traffic shaping
 	if k.TrafficShaping != nil {
-		if k.TrafficShaping.MinPaddingBytes == 0 {
-			k.TrafficShaping.MinPaddingBytes = 0
-		}
 		if k.TrafficShaping.MaxPaddingBytes == 0 {
 			k.TrafficShaping.MaxPaddingBytes = 128
-		}
-		if k.TrafficShaping.MinJitterMs == 0 {
-			k.TrafficShaping.MinJitterMs = 0
 		}
 		if k.TrafficShaping.MaxJitterMs == 0 {
 			k.TrafficShaping.MaxJitterMs = 50

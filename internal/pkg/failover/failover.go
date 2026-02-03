@@ -66,8 +66,8 @@ func (fm *Manager) GetServer() (*net.UDPAddr, error) {
 		return nil, fmt.Errorf("no servers available")
 	}
 
-	fm.mu.RLock()
-	defer fm.mu.RUnlock()
+	fm.mu.Lock()
+	defer fm.mu.Unlock()
 
 	// Find healthy servers
 	healthyServers := make([]*net.UDPAddr, 0, len(fm.servers))
