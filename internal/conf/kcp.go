@@ -28,7 +28,39 @@ type KCP struct {
 	Smuxbuf   int `yaml:"smuxbuf"`
 	Streambuf int `yaml:"streambuf"`
 
+	// GFW Resilience Features
+	TrafficShaping *TrafficShaping `yaml:"traffic_shaping"`
+	CipherRotation *CipherRotation `yaml:"cipher_rotation"`
+	DynamicTuning  *DynamicTuning  `yaml:"dynamic_tuning"`
+
 	Block kcp.BlockCrypt `yaml:"-"`
+}
+
+// TrafficShaping contains options for traffic obfuscation
+type TrafficShaping struct {
+	EnablePadding       bool `yaml:"enable_padding"`
+	MinPaddingBytes     int  `yaml:"min_padding_bytes"`
+	MaxPaddingBytes     int  `yaml:"max_padding_bytes"`
+	EnableTimingJitter  bool `yaml:"enable_timing_jitter"`
+	MinJitterMs         int  `yaml:"min_jitter_ms"`
+	MaxJitterMs         int  `yaml:"max_jitter_ms"`
+	EnableFragmentation bool `yaml:"enable_fragmentation"`
+	FragmentSize        int  `yaml:"fragment_size"`
+}
+
+// CipherRotation enables automatic cipher switching
+type CipherRotation struct {
+	Enable           bool     `yaml:"enable"`
+	RotationInterval int      `yaml:"rotation_interval_seconds"`
+	Ciphers          []string `yaml:"ciphers"`
+}
+
+// DynamicTuning enables adaptive KCP parameter adjustment
+type DynamicTuning struct {
+	Enable              bool `yaml:"enable"`
+	AdaptiveInterval    bool `yaml:"adaptive_interval"`
+	AdaptiveCongestion  bool `yaml:"adaptive_congestion"`
+	MonitoringWindowSec int  `yaml:"monitoring_window_seconds"`
 }
 
 func (k *KCP) setDefaults(role string) {
@@ -71,6 +103,36 @@ func (k *KCP) setDefaults(role string) {
 	if k.Streambuf == 0 {
 		k.Streambuf = 2 * 1024 * 1024
 	}
+
+	// Set defaults for traffic shaping
+	if k.TrafficShaping != nil {
+		if k.TrafficShaping.MaxPaddingBytes == 0 {
+			k.TrafficShaping.MaxPaddingBytes = 128
+		}
+		if k.TrafficShaping.MaxJitterMs == 0 {
+			k.TrafficShaping.MaxJitterMs = 50
+		}
+		if k.TrafficShaping.FragmentSize == 0 {
+			k.TrafficShaping.FragmentSize = 512
+		}
+	}
+
+	// Set defaults for cipher rotation
+	if k.CipherRotation != nil {
+		if k.CipherRotation.RotationInterval == 0 {
+			k.CipherRotation.RotationInterval = 3600 // 1 hour
+		}
+		if len(k.CipherRotation.Ciphers) == 0 {
+			k.CipherRotation.Ciphers = []string{"aes-128-gcm", "salsa20", "twofish"}
+		}
+	}
+
+	// Set defaults for dynamic tuning
+	if k.DynamicTuning != nil {
+		if k.DynamicTuning.MonitoringWindowSec == 0 {
+			k.DynamicTuning.MonitoringWindowSec = 60
+		}
+	}
 }
 
 func (k *KCP) validate() []error {
@@ -110,6 +172,53 @@ func (k *KCP) validate() []error {
 	}
 	if k.Streambuf < 1024 {
 		errors = append(errors, fmt.Errorf("KCP streambuf must be >= 1024 bytes"))
+	}
+
+	// Validate traffic shaping
+	if k.TrafficShaping != nil {
+		if k.TrafficShaping.MinPaddingBytes < 0 || k.TrafficShaping.MinPaddingBytes > 1024 {
+			errors = append(errors, fmt.Errorf("traffic_shaping.min_padding_bytes must be between 0-1024"))
+		}
+		if k.TrafficShaping.MaxPaddingBytes < 0 || k.TrafficShaping.MaxPaddingBytes > 1024 {
+			errors = append(errors, fmt.Errorf("traffic_shaping.max_padding_bytes must be between 0-1024"))
+		}
+		if k.TrafficShaping.MinPaddingBytes > k.TrafficShaping.MaxPaddingBytes {
+			errors = append(errors, fmt.Errorf("traffic_shaping.min_padding_bytes must be <= max_padding_bytes"))
+		}
+		if k.TrafficShaping.MinJitterMs < 0 || k.TrafficShaping.MinJitterMs > 1000 {
+			errors = append(errors, fmt.Errorf("traffic_shaping.min_jitter_ms must be between 0-1000"))
+		}
+		if k.TrafficShaping.MaxJitterMs < 0 || k.TrafficShaping.MaxJitterMs > 1000 {
+			errors = append(errors, fmt.Errorf("traffic_shaping.max_jitter_ms must be between 0-1000"))
+		}
+		if k.TrafficShaping.MinJitterMs > k.TrafficShaping.MaxJitterMs {
+			errors = append(errors, fmt.Errorf("traffic_shaping.min_jitter_ms must be <= max_jitter_ms"))
+		}
+		if k.TrafficShaping.FragmentSize < 64 || k.TrafficShaping.FragmentSize > k.MTU {
+			errors = append(errors, fmt.Errorf("traffic_shaping.fragment_size must be between 64-%d", k.MTU))
+		}
+	}
+
+	// Validate cipher rotation
+	if k.CipherRotation != nil && k.CipherRotation.Enable {
+		if k.CipherRotation.RotationInterval < 60 {
+			errors = append(errors, fmt.Errorf("cipher_rotation.rotation_interval_seconds must be >= 60"))
+		}
+		for _, cipher := range k.CipherRotation.Ciphers {
+			if !slices.Contains(validBlocks, cipher) {
+				errors = append(errors, fmt.Errorf("cipher_rotation cipher '%s' must be one of: %v", cipher, validBlocks))
+			}
+		}
+		if len(k.CipherRotation.Ciphers) < 2 {
+			errors = append(errors, fmt.Errorf("cipher_rotation must have at least 2 ciphers"))
+		}
+	}
+
+	// Validate dynamic tuning
+	if k.DynamicTuning != nil && k.DynamicTuning.Enable {
+		if k.DynamicTuning.MonitoringWindowSec < 10 || k.DynamicTuning.MonitoringWindowSec > 600 {
+			errors = append(errors, fmt.Errorf("dynamic_tuning.monitoring_window_seconds must be between 10-600"))
+		}
 	}
 
 	return errors

@@ -96,3 +96,52 @@ transport:
 # sudo iptables -t mangle -A OUTPUT -p tcp --sport 9999 --tcp-flags RST RST -j DROP
 #
 # Replace 9999 with your actual listen port.
+# ============================================================================
+# GFW RESILIENCE FEATURES
+# ============================================================================
+# The following features enhance resilience against censorship and 
+# deep packet inspection (DPI) systems like Iran's Great Firewall.
+# These are optional but recommended for high-censorship environments.
+
+# Transport with protocol obfuscation
+# transport:
+#   protocol: "kcp"
+#   conn: 2                          # Support multiple connections
+#   
+#   # Protocol obfuscation (disguise traffic as HTTPS or other protocols)
+#   obfuscation:
+#     enable: true
+#     type: "obfs4"                  # Options: obfs4, meek, websocket, http2
+#     obfs_key: "your-obfs-key"      # Key for obfs4 (must match client)
+#     # websocket_path: "/ws"         # For websocket transport
+#   
+#   kcp:
+#     mode: "fast"
+#     key: "your-secret-key-here"
+#     
+#     # Traffic shaping to evade DPI fingerprinting
+#     traffic_shaping:
+#       enable_padding: true         # Add random padding to packets
+#       min_padding_bytes: 0         # Minimum padding (0-1024)
+#       max_padding_bytes: 128       # Maximum padding (0-1024)
+#       enable_timing_jitter: true   # Add random delays
+#       min_jitter_ms: 0             # Minimum delay in milliseconds
+#       max_jitter_ms: 50            # Maximum delay in milliseconds
+#       enable_fragmentation: true   # Split packets into fragments
+#       fragment_size: 512           # Fragment size in bytes (64-MTU)
+#     
+#     # Cipher rotation to prevent static encryption detection
+#     cipher_rotation:
+#       enable: true
+#       rotation_interval_seconds: 3600  # Rotate cipher every hour
+#       ciphers:                     # List of ciphers to rotate between
+#         - "aes-128-gcm"
+#         - "salsa20"
+#         - "twofish"
+#     
+#     # Dynamic KCP tuning to adapt to network conditions
+#     dynamic_tuning:
+#       enable: true
+#       adaptive_interval: true      # Automatically adjust interval
+#       adaptive_congestion: true    # Adapt congestion control
+#       monitoring_window_seconds: 60  # Monitor network every 60 seconds

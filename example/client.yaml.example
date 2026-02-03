@@ -97,3 +97,80 @@ transport:
 # Use these only if you need FEC for very lossy networks:
 #   dshard: 10    # Data shards for FEC
 #   pshard: 3     # Parity shards for FEC
+# ============================================================================
+# GFW RESILIENCE FEATURES
+# ============================================================================
+# The following features enhance resilience against censorship and 
+# deep packet inspection (DPI) systems like Iran's Great Firewall.
+# These are optional but recommended for high-censorship environments.
+
+# Server connection with redundancy and failover
+# server:
+#   # Primary server (can also specify as 'addr' for single server)
+#   servers:
+#     - "server1.example.com:9999"
+#     - "server2.example.com:9999"
+#     - "10.0.0.100:9999"
+#   
+#   # Server failover configuration
+#   failover:
+#     enable: true
+#     strategy: "round_robin"        # Options: round_robin, random, latency
+#     health_check_seconds: 30       # Check server health every 30 seconds
+#     max_retries: 3                 # Maximum retry attempts per server
+#     retry_delay_seconds: 5         # Delay between retries
+#   
+#   # DNS obfuscation to bypass DNS poisoning
+#   dns_obfuscation:
+#     enable_doh: true               # Use DNS-over-HTTPS
+#     doh_servers:
+#       - "https://cloudflare-dns.com/dns-query"
+#       - "https://dns.google/dns-query"
+#       - "https://dns.quad9.net/dns-query"
+#     enable_dga: false              # Domain Generation Algorithm (advanced)
+#     dga_seed: "your-secret-seed"   # Seed for DGA (required if enabled)
+#     dga_domains: 10                # Number of domains to generate
+
+# Transport with protocol obfuscation
+# transport:
+#   protocol: "kcp"
+#   conn: 2                          # Use multiple connections for redundancy
+#   
+#   # Protocol obfuscation (disguise traffic as HTTPS or other protocols)
+#   obfuscation:
+#     enable: true
+#     type: "obfs4"                  # Options: obfs4, meek, websocket, http2
+#     obfs_key: "your-obfs-key"      # Key for obfs4 (must match server)
+#     # meek_url: "https://meek.example.com"  # For meek transport
+#     # websocket_path: "/ws"         # For websocket transport
+#   
+#   kcp:
+#     mode: "fast"
+#     key: "your-secret-key-here"
+#     
+#     # Traffic shaping to evade DPI fingerprinting
+#     traffic_shaping:
+#       enable_padding: true         # Add random padding to packets
+#       min_padding_bytes: 0         # Minimum padding (0-1024)
+#       max_padding_bytes: 128       # Maximum padding (0-1024)
+#       enable_timing_jitter: true   # Add random delays
+#       min_jitter_ms: 0             # Minimum delay in milliseconds
+#       max_jitter_ms: 50            # Maximum delay in milliseconds
+#       enable_fragmentation: true   # Split packets into fragments
+#       fragment_size: 512           # Fragment size in bytes (64-MTU)
+#     
+#     # Cipher rotation to prevent static encryption detection
+#     cipher_rotation:
+#       enable: true
+#       rotation_interval_seconds: 3600  # Rotate cipher every hour
+#       ciphers:                     # List of ciphers to rotate between
+#         - "aes-128-gcm"
+#         - "salsa20"
+#         - "twofish"
+#     
+#     # Dynamic KCP tuning to adapt to network conditions
+#     dynamic_tuning:
+#       enable: true
+#       adaptive_interval: true      # Automatically adjust interval
+#       adaptive_congestion: true    # Adapt congestion control
+#       monitoring_window_seconds: 60  # Monitor network every 60 seconds
