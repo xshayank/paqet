@@ -48,3 +48,8 @@ func newBlock(block, key string) (kcp.BlockCrypt, error) {
 
 	return nil, fmt.Errorf("unsupported block type: %s", block)
 }
+
+// NewBlockCrypt creates a new block cipher (exported for use by other packages)
+func NewBlockCrypt(block, key string) (kcp.BlockCrypt, error) {
+	return newBlock(block, key)
+}

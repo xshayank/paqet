@@ -316,6 +316,143 @@ A normal application uses the OS's TCP/IP stack. When a packet arrives, it trave
 
 This means a rule like `ufw deny <PORT>` will have no effect on the proxy's operation, as `paqet` receives and processes the packet before `ufw` can block it.
 
+## GFW Resilience Features
+
+`paqet` includes advanced features designed to enhance resilience against sophisticated censorship systems like Iran's Great Firewall (GFW). These features help circumvent Deep Packet Inspection (DPI), active probing, DNS poisoning, and IP blocking.
+
+### 1. Enhanced Protocol Obfuscation
+
+Make your traffic appear as legitimate HTTPS or random data to evade DPI detection:
+
+```yaml
+transport:
+  obfuscation:
+    enable: true
+    type: "obfs4"              # Options: obfs4, meek, websocket, http2
+    obfs_key: "your-obfs-key"  # Must match between client and server
+```
+
+**obfs4**: Disguises traffic using obfuscation layer 4 protocol, making it look like random noise.
+**meek**: Tunnels traffic through a domain-fronted CDN for additional stealth.
+**websocket/http2**: Makes traffic appear as standard web browsing.
+
+### 2. Dynamic Encryption & Cipher Rotation
+
+Automatically rotate between multiple encryption ciphers to prevent static pattern detection:
+
+```yaml
+transport:
+  kcp:
+    cipher_rotation:
+      enable: true
+      rotation_interval_seconds: 3600  # Rotate every hour
+      ciphers:
+        - "aes-128-gcm"
+        - "salsa20"
+        - "twofish"
+```
+
+This prevents censors from identifying your traffic by its encryption signature. The system automatically switches between AES-GCM (fast, hardware-accelerated), Salsa20 (stream cipher), and Twofish (strong block cipher).
+
+### 3. Traffic Shaping & Fingerprinting Resistance
+
+Defeat flow fingerprinting and timing analysis attacks:
+
+```yaml
+transport:
+  kcp:
+    traffic_shaping:
+      enable_padding: true         # Random padding to normalize packet sizes
+      min_padding_bytes: 0
+      max_padding_bytes: 128
+      enable_timing_jitter: true   # Random delays to break timing patterns
+      min_jitter_ms: 0
+      max_jitter_ms: 50
+      enable_fragmentation: true   # Split packets to obfuscate flow
+      fragment_size: 512
+```
+
+**Padding**: Adds random bytes to packets, making all packets appear similar in size.
+**Timing Jitter**: Introduces random delays to prevent timing correlation attacks.
+**Fragmentation**: Breaks packets into smaller pieces with varying sizes.
+
+### 4. Multi-Server Failover & Redundancy
+
+Configure multiple server endpoints with automatic failover:
+
+```yaml
+server:
+  servers:
+    - "server1.example.com:9999"
+    - "server2.example.com:9999"
+    - "10.0.0.100:9999"
+  failover:
+    enable: true
+    strategy: "round_robin"      # round_robin, random, or latency
+    health_check_seconds: 30
+    max_retries: 3
+    retry_delay_seconds: 5
+```
+
+The client automatically switches to backup servers if the primary becomes unavailable. Supports three strategies:
+- **round_robin**: Distribute connections evenly across servers
+- **random**: Randomly select servers to avoid patterns
+- **latency**: Prefer servers with lowest latency (future enhancement)
+
+### 5. DNS Obfuscation & Anti-Poisoning
+
+Bypass DNS poisoning using DNS-over-HTTPS (DoH):
+
+```yaml
+server:
+  dns_obfuscation:
+    enable_doh: true
+    doh_servers:
+      - "https://cloudflare-dns.com/dns-query"
+      - "https://dns.google/dns-query"
+      - "https://dns.quad9.net/dns-query"
+    enable_dga: false            # Domain Generation Algorithm (advanced)
+    dga_seed: "your-secret-seed"
+    dga_domains: 10
+```
+
+**DNS-over-HTTPS**: Encrypts DNS queries to prevent interception and manipulation.
+**DGA**: Generates pseudo-random domains using a shared seed, making domain blocking ineffective.
+
+### 6. Dynamic KCP Tuning
+
+Automatically adjust protocol parameters to adapt to network conditions and evade detection:
+
+```yaml
+transport:
+  kcp:
+    dynamic_tuning:
+      enable: true
+      adaptive_interval: true      # Adjust timing parameters
+      adaptive_congestion: true    # Adapt to network congestion
+      monitoring_window_seconds: 60
+```
+
+This feature continuously monitors network performance and adjusts KCP parameters like interval and congestion control to maintain optimal performance while varying traffic patterns to avoid detection.
+
+### Best Practices for High-Censorship Environments
+
+1. **Enable Multiple Features**: Use traffic shaping + cipher rotation + obfuscation together for maximum resilience
+2. **Configure Redundancy**: Set up at least 3 geographically diverse server nodes
+3. **Use DoH**: Always enable DNS-over-HTTPS to prevent DNS-based blocking
+4. **Rotate Keys**: Periodically change your encryption keys using the `secret` command
+5. **Monitor Logs**: Watch for connection failures that might indicate blocking attempts
+6. **Geographic Diversity**: Place servers in different countries and hosting providers
+7. **Avoid Patterns**: Use random strategies and jitter to prevent behavior-based detection
+
+### Security Considerations
+
+These features are designed for legitimate privacy and censorship circumvention. While they enhance resilience:
+- They are not foolproof against state-level adversaries with unlimited resources
+- Performance may be impacted when using maximum obfuscation
+- Keep your configuration and keys secure
+- Regularly update to the latest version for newest countermeasures
+
 ## ⚠️ Security Warning
 
 This project is an exploration of low-level networking and carries significant security responsibilities. The KCP transport protocol provides encryption, authentication, and integrity using symmetric encryption with a shared secret key.
