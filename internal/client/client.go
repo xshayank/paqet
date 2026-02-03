@@ -74,9 +74,14 @@ func (c *Client) Start(ctx context.Context) error {
 		ipv6Addr = c.cfg.Network.IPv6.Addr.IP.String()
 	}
 
-	serverInfo := c.cfg.Server.Addr.String()
-	if len(c.cfg.Server.ServerAddrs) > 0 {
-		serverInfo = fmt.Sprintf("%s + %d backups", serverInfo, len(c.cfg.Server.ServerAddrs))
+	serverInfo := "multiple servers"
+	if c.cfg.Server.Addr != nil {
+		serverInfo = c.cfg.Server.Addr.String()
+		if len(c.cfg.Server.ServerAddrs) > 0 {
+			serverInfo = fmt.Sprintf("%s + %d backups", serverInfo, len(c.cfg.Server.ServerAddrs))
+		}
+	} else if len(c.cfg.Server.ServerAddrs) > 0 {
+		serverInfo = fmt.Sprintf("%d servers", len(c.cfg.Server.ServerAddrs))
 	}
 
 	flog.Infof("Client started: IPv4:%s IPv6:%s -> %s (%d connections)", ipv4Addr, ipv6Addr, serverInfo, len(c.iter.Items))
